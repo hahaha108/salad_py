@@ -151,3 +151,58 @@ JWT_AUTH = {
     'JWT_EXPIRATION_DELTA': datetime.timedelta(days=1),
     'JWT_AUTH_HEADER_PREFIX': 'Bearer',
 }
+
+# 日志
+BASE_LOG_DIR = os.path.join(BASE_DIR, 'logs')
+
+
+LOGGING = {
+    'version': 1,
+    'disable_existing_loggers': False,
+    'formatters': {
+        'standard': {
+            'format': '[%(asctime)s][%(levelname)s]''[%(filename)s:%(lineno)d][%(message)s]'
+        },
+        'simple': {
+            'format': '[%(levelname)s][%(asctime)s]%(message)s'
+        },
+
+    },
+    'handlers': {
+        'default': {
+            'level': 'INFO',
+            'class': 'logging.handlers.RotatingFileHandler',
+            'filename': os.path.join(BASE_LOG_DIR, "info_salad.log"),
+            'maxBytes': 1024 * 1024 * 50,
+            'backupCount': 3,
+            'formatter': 'simple',
+            'encoding': 'utf-8',
+        },
+        'error': {
+            'level': 'ERROR',
+            'class': 'logging.handlers.RotatingFileHandler',
+            'filename': os.path.join(BASE_LOG_DIR, "err_salad.log"),
+            'backupCount': 5,
+            'formatter': 'standard',
+            'encoding': 'utf-8',
+        }
+
+    },
+        'loggers': {
+            'info': {
+                'handlers': ['default'],
+                'level': 'INFO',
+                'propagate': True,
+            },
+            'warn':{
+                'handlers': ['default'],
+                'level': 'WARNING',
+                'propagate': True,
+            },
+            'error': {
+                'handlers': ['error'],
+                'level': 'ERROR',
+            }
+    }
+
+}
