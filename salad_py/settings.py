@@ -12,6 +12,7 @@ https://docs.djangoproject.com/en/3.0/ref/settings/
 
 import os
 import datetime
+import logging
 
 # Build paths inside the project like this: os.path.join(BASE_DIR, ...)
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
@@ -189,17 +190,12 @@ LOGGING = {
 
     },
         'loggers': {
-            'info': {
+            'django': {
                 'handlers': ['default'],
                 'level': 'INFO',
                 'propagate': True,
             },
-            'warn':{
-                'handlers': ['default'],
-                'level': 'WARNING',
-                'propagate': True,
-            },
-            'error': {
+            'django.request': {
                 'handlers': ['error'],
                 'level': 'ERROR',
             }
