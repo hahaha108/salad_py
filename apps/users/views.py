@@ -3,8 +3,8 @@ from rest_framework.views import APIView
 from django.contrib.auth import authenticate
 from rest_framework_jwt.settings import api_settings
 from rest_framework_jwt.authentication import JSONWebTokenAuthentication
-from rest_framework.response import Response
-from rest_framework import mixins
+from common.custom import ApiResponse
+from rest_framework import mixins, serializers
 from rest_framework.viewsets import GenericViewSet
 from rest_framework import status
 from drf_yasg.utils import swagger_auto_schema
@@ -33,10 +33,9 @@ class UserAuthView(APIView):
             payload = jwt_payload_handler(user)
             token = jwt_encode_handler(payload)
             user.token = token
-            return Response({'message': 'ok',
-                             'token': token}, status=200)
+            return ApiResponse({'token': token}, code=200, msg='ok')
         else:
-            return Response({ 'message': '用户名或密码错误!', }, status=400)
+            return ApiResponse(code=400, msg='用户名或密码错误')
 
 
 class UserInfoView(APIView):
@@ -55,9 +54,9 @@ class UserInfoView(APIView):
                 "avatar": request._request._current_scheme_host + '/media/' + str(request.user.avatar),
                 "email": request.user.email
             }
-            return Response(data, status=200)
+            return ApiResponse(data, code=200, msg='ok')
         else:
-            return Response({'message': '请登录后访问!', }, status=400)
+            return ApiResponse(code=400, msg='用户不存在!')
 
 
 class UserViewSet(mixins.CreateModelMixin,
@@ -83,7 +82,10 @@ class UserViewSet(mixins.CreateModelMixin,
 
     def create(self, request, *args, **kwargs):
         serializer = self.get_serializer(data=request.data)
-        serializer.is_valid(raise_exception=True)
+        try:
+            serializer.is_valid(raise_exception=True)
+        except serializers.ValidationError:
+            return ApiResponse(code=400, msg='用户名已存在')
         self.perform_create(serializer)
         headers = self.get_success_headers(serializer.data)
-        return Response(serializer.data, status=status.HTTP_201_CREATED, headers=headers)
+        return ApiResponse(serializer.data, code=200, msg='ok', status=status.HTTP_201_CREATED, headers=headers)

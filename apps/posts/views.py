@@ -1,11 +1,11 @@
-from rest_framework import mixins, viewsets
+from rest_framework import mixins, viewsets, status
 from rest_framework.pagination import PageNumberPagination
-
+from collections import OrderedDict
 # from .permission import IsSelfItemAuthenticated
 from rest_framework.permissions import IsAuthenticated
-from rest_framework.response import Response
+from common.custom import ApiResponse
 
-from .serializers import PostSerializer,PostListSerializer,PostPublishSerializer
+from .serializers import PostSerializer, PostListSerializer, PostPublishSerializer
 from .models import Post
 
 
@@ -24,6 +24,13 @@ class PostsPagination(PageNumberPagination):
     page_query_param = 'page'
     # 最多能显示多少页
     max_page_size = 100
+
+    def get_paginated_response(self, data):
+        return ApiResponse(data, code=200, msg="ok", **OrderedDict([
+            ('count', self.page.paginator.count),
+            ('next', self.get_next_link()),
+            ('previous', self.get_previous_link()),
+        ]))
 
 
 class PostsViewSet(mixins.ListModelMixin, mixins.RetrieveModelMixin, mixins.CreateModelMixin, viewsets.GenericViewSet):
@@ -51,4 +58,11 @@ class PostsViewSet(mixins.ListModelMixin, mixins.RetrieveModelMixin, mixins.Crea
         instance.increase_views()
 
         serializer = self.get_serializer(instance)
-        return Response(serializer.data)
+        return ApiResponse(serializer.data, code=200, msg="ok")
+
+    def create(self, request, *args, **kwargs):
+        serializer = self.get_serializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        self.perform_create(serializer)
+        headers = self.get_success_headers(serializer.data)
+        return ApiResponse(serializer.data, code=200, msg="ok", status=status.HTTP_201_CREATED, headers=headers)
