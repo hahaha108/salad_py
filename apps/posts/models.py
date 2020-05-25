@@ -11,9 +11,13 @@ class Post(models.Model):
     first_shared_at = models.DateTimeField(auto_now_add=True)
     last_updated_at = models.DateTimeField(auto_now=True)
     description = models.CharField(max_length=300,null=True,blank=True)
+    title_image = models.ImageField(upload_to="static/%Y/%m", default="image/default.png",
+                               max_length=300, null=True, blank=True)
     user = models.ForeignKey(User, null=True,on_delete=models.SET_NULL)
     views_count = models.PositiveIntegerField(default=0)
     likes_count = models.PositiveIntegerField(default=0)
+    admiration_count = models.PositiveIntegerField(default=0)
+    wordage = models.PositiveIntegerField(default=0)
 
     class Meta:
         ordering = ['-last_updated_at']
@@ -24,6 +28,8 @@ class Post(models.Model):
     def save(self,*args,**kwargs):
         if not self.description:
             self.description = strip_tags(self.free_content)[:108]
+        if not self.wordage:
+            self.wordage = len(strip_tags(self.free_content))
         super(Post, self).save(*args,**kwargs)
 
     def increase_views(self):
