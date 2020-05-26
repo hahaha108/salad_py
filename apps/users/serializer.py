@@ -1,5 +1,8 @@
 from rest_framework import serializers
 from .models import UserProfile
+from captcha.views import CaptchaStore
+from datetime import datetime
+from rest_framework import exceptions
 
 
 class UserLoginSerializer(serializers.ModelSerializer):
@@ -28,15 +31,38 @@ class UserRegisterSerializer(serializers.ModelSerializer):
     '''
     username = serializers.CharField(required=True, allow_blank=False)
     password = serializers.CharField(write_only=True)
+    captcha_code = serializers.CharField(required=True, write_only=True, max_length=4, min_length=4, label='验证码',
+                                         error_messages={
+                                             "blank": "请输入验证码",
+                                             "required": "请输入验证码",
+                                             "max_length": "验证码格式错误",
+                                             "min_length": "验证码格式错误"
+                                         },
+                                         help_text="验证码")
+    captcha_id = serializers.CharField(required=True, write_only=True, help_text="验证码id")
 
     class Meta:
         model = UserProfile
-        fields = ['username', 'password', 'nickname', 'email']
+        fields = ['username', 'password', 'nickname', 'email', 'captcha_code', 'captcha_id']
 
     def validate_username(self, username):
         if UserProfile.objects.filter(username=username):
-            raise serializers.ValidationError(username + ' 账号已存在')
+            raise exceptions.APIException(username + ' 账号已存在')
         return username
+
+    def validate_captcha_code(self, captcha_code):
+        try:
+            lower_captcha_code = captcha_code.lower()
+        except:
+            raise exceptions.APIException("验证码错误")
+        rigth_code = CaptchaStore.objects.filter(
+            id=self.initial_data['captcha_id']).first()
+        if rigth_code and datetime.now() > rigth_code.expiration:
+            raise exceptions.APIException("验证码过期")
+        elif rigth_code and rigth_code.response == lower_captcha_code:
+            return captcha_code
+        else:
+            raise exceptions.APIException("验证码错误")
 
     def create(self, validated_data):
         # 密码存密文
@@ -44,3 +70,9 @@ class UserRegisterSerializer(serializers.ModelSerializer):
         user.set_password(validated_data["password"])
         user.save()
         return user
+
+    def validate(self, attrs):
+        # 数据库中并没有这些字段，验证完就删除掉,否则save会报错
+        del attrs["captcha_code"]
+        del attrs["captcha_id"]
+        return attrs

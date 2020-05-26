@@ -43,6 +43,7 @@ VENDOR_APPS = [
     'rest_framework',
     'drf_yasg',
     'corsheaders',
+    'captcha',
 ]
 
 LOCAL_APPS = [
@@ -125,7 +126,7 @@ USE_I18N = True
 
 USE_L10N = True
 
-USE_TZ = True
+USE_TZ = False
 
 # Static files (CSS, JavaScript, Images)
 # https://docs.djangoproject.com/en/3.0/howto/static-files/
@@ -140,6 +141,7 @@ MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
 
 REST_FRAMEWORK = {
     'DEFAULT_SCHEMA_CLASS': 'rest_framework.schemas.AutoSchema',
+    'EXCEPTION_HANDLER': 'common.custom.exception_handler',
     'DEFAULT_AUTHENTICATION_CLASSES': (
         'rest_framework_jwt.authentication.JSONWebTokenAuthentication',
         'rest_framework.authentication.SessionAuthentication',
@@ -154,51 +156,51 @@ JWT_AUTH = {
 }
 
 # 日志
-BASE_LOG_DIR = os.path.join(BASE_DIR, 'logs')
-
-
-LOGGING = {
-    'version': 1,
-    'disable_existing_loggers': False,
-    'formatters': {
-        'standard': {
-            'format': '[%(asctime)s][%(levelname)s]''[%(filename)s:%(lineno)d][%(message)s]'
-        },
-        'simple': {
-            'format': '[%(levelname)s][%(asctime)s]%(message)s'
-        },
-
-    },
-    'handlers': {
-        'default': {
-            'level': 'INFO',
-            'class': 'logging.handlers.RotatingFileHandler',
-            'filename': os.path.join(BASE_LOG_DIR, "info_salad.log"),
-            'maxBytes': 1024 * 1024 * 50,
-            'backupCount': 3,
-            'formatter': 'simple',
-            'encoding': 'utf-8',
-        },
-        'error': {
-            'level': 'ERROR',
-            'class': 'logging.handlers.RotatingFileHandler',
-            'filename': os.path.join(BASE_LOG_DIR, "err_salad.log"),
-            'backupCount': 5,
-            'formatter': 'standard',
-            'encoding': 'utf-8',
-        }
-
-    },
-        'loggers': {
-            'django': {
-                'handlers': ['default'],
-                'level': 'INFO',
-                'propagate': True,
-            },
-            'django.request': {
-                'handlers': ['error'],
-                'level': 'ERROR',
-            }
-    }
-
-}
+# BASE_LOG_DIR = os.path.join(BASE_DIR, 'logs')
+#
+#
+# LOGGING = {
+#     'version': 1,
+#     'disable_existing_loggers': False,
+#     'formatters': {
+#         'standard': {
+#             'format': '[%(asctime)s][%(levelname)s]''[%(filename)s:%(lineno)d][%(message)s]'
+#         },
+#         'simple': {
+#             'format': '[%(levelname)s][%(asctime)s]%(message)s'
+#         },
+#
+#     },
+#     'handlers': {
+#         'default': {
+#             'level': 'INFO',
+#             'class': 'logging.handlers.RotatingFileHandler',
+#             'filename': os.path.join(BASE_LOG_DIR, "info_salad.log"),
+#             'maxBytes': 1024 * 1024 * 50,
+#             'backupCount': 3,
+#             'formatter': 'simple',
+#             'encoding': 'utf-8',
+#         },
+#         'error': {
+#             'level': 'ERROR',
+#             'class': 'logging.handlers.RotatingFileHandler',
+#             'filename': os.path.join(BASE_LOG_DIR, "err_salad.log"),
+#             'backupCount': 5,
+#             'formatter': 'standard',
+#             'encoding': 'utf-8',
+#         }
+#
+#     },
+#         'loggers': {
+#             'django': {
+#                 'handlers': ['default'],
+#                 'level': 'INFO',
+#                 'propagate': True,
+#             },
+#             'django.request': {
+#                 'handlers': ['error'],
+#                 'level': 'ERROR',
+#             }
+#     }
+#
+# }

@@ -8,10 +8,11 @@ from rest_framework import mixins, serializers
 from rest_framework.viewsets import GenericViewSet
 from rest_framework import status
 from drf_yasg.utils import swagger_auto_schema
-
+from captcha.views import CaptchaStore, captcha_image
 from .permission import IsSelfAuthenticated
 from .serializer import UserLoginSerializer, UserIntroSerializer, UserRegisterSerializer
 from .models import UserProfile
+import base64
 
 # Create your views here.
 
@@ -82,10 +83,23 @@ class UserViewSet(mixins.CreateModelMixin,
 
     def create(self, request, *args, **kwargs):
         serializer = self.get_serializer(data=request.data)
-        try:
-            serializer.is_valid(raise_exception=True)
-        except serializers.ValidationError:
-            return ApiResponse(code=400, msg='用户名已存在')
+        serializer.is_valid(raise_exception=True)
         self.perform_create(serializer)
         headers = self.get_success_headers(serializer.data)
         return ApiResponse(serializer.data, code=200, msg='ok', status=status.HTTP_201_CREATED, headers=headers)
+
+
+class ImageCaptchaView(APIView):
+    def get(self, request):
+        '''
+        获取图片验证码
+        :param request:
+        :return:
+        '''
+        hashkey = CaptchaStore.generate_key()
+        _id = CaptchaStore.objects.filter(hashkey=hashkey).first().id
+        image = captcha_image(request, hashkey)
+        # 将图片转换为base64
+        image_base = base64.b64encode(image.content)
+        data = {"id": _id, "image_base": image_base.decode('utf-8'), "type": "image/png", "encoding": "base64"}
+        return ApiResponse(data, code=200, msg='ok', status=status.HTTP_201_CREATED)
