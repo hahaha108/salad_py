@@ -32,9 +32,8 @@ class Post(models.Model):
             # 截取简介
             self.description = strip_tags(self.free_content)[:108]
 
-        if not self.wordage:
-            # 获取字数
-            self.wordage = len(strip_tags(self.free_content))
+        # 获取字数
+        self.wordage = len(strip_tags(self.free_content))
 
         if not self.title_image:
             # 获取第一张图片作为封面图

@@ -43,6 +43,7 @@ class ApiResponse(Response):
 
 def exception_handler(exc, context):
     """
+    自定义统一错误响应格式
     Returns the response that should be used for any given exception.
 
     By default we handle the REST framework `APIException`, and also
@@ -69,9 +70,13 @@ def exception_handler(exc, context):
             status = 401
 
         set_rollback()
-        if isinstance(exc.detail, (list, dict)):
-            return ApiResponse(data=exc.detail,code=0, msg='ValidationError', status=status, headers=headers)
+        if isinstance(exc.detail, dict):
+            for k,v in exc.detail.items():
+                return ApiResponse(code=400, msg=f'{k}: {v[0]}', status=status, headers=headers)
+        elif isinstance(exc.detail, list):
+            pass
         else:
             return ApiResponse(code=400, msg=exc.detail, status=status, headers=headers)
+        return ApiResponse(data=exc.detail, code=0, msg='ApiError', status=status, headers=headers)
 
     return None

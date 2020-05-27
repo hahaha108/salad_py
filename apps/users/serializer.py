@@ -14,6 +14,15 @@ class UserLoginSerializer(serializers.ModelSerializer):
         model = UserProfile
         fields = ['username', 'password']
 
+class UserUpdateSerializer(serializers.ModelSerializer):
+    '''
+    用户资料自定义更新
+    '''
+    id = serializers.CharField(read_only=True)
+    class Meta:
+        model = UserProfile
+        fields = ['id','nickname','email']
+
 
 class UserIntroSerializer(serializers.ModelSerializer):
     '''

@@ -1,16 +1,18 @@
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.views import APIView
 from django.contrib.auth import authenticate
+from django.conf import settings
 from rest_framework_jwt.settings import api_settings
 from rest_framework_jwt.authentication import JSONWebTokenAuthentication
 from common.custom import ApiResponse
 from rest_framework import mixins, serializers
 from rest_framework.viewsets import GenericViewSet
 from rest_framework import status
+from rest_framework import exceptions
 from drf_yasg.utils import swagger_auto_schema
 from captcha.views import CaptchaStore, captcha_image
 from .permission import IsSelfAuthenticated
-from .serializer import UserLoginSerializer, UserIntroSerializer, UserRegisterSerializer
+from .serializer import UserLoginSerializer, UserIntroSerializer, UserRegisterSerializer, UserUpdateSerializer
 from .models import UserProfile
 import base64
 
@@ -18,6 +20,31 @@ import base64
 
 jwt_payload_handler = api_settings.JWT_PAYLOAD_HANDLER
 jwt_encode_handler = api_settings.JWT_ENCODE_HANDLER
+
+class UserAvatarManageView(APIView):
+    authentication_classes = (JSONWebTokenAuthentication,)
+    permission_classes = (IsAuthenticated,)
+    def post(self, request, *args, **kwargs):
+        '''
+        用户头像上传更新 上传图片类型文件，参数名: avatar
+        '''
+        if request.user.id is not None:
+            avatar = request.FILES.get('avatar',None)
+            if not avatar:
+                raise exceptions.APIException("avatar文件未指定")
+            ext = avatar.name.split('.')[-1]
+            if ext.lower() not in ["jpg","jpeg","png"]:
+                raise exceptions.APIException("上传文件类型必须为:jpg,jpeg,png")
+            request.user.avatar = avatar
+            request.user.save()
+            data = {
+                "uid": request.user.id,
+                "username": request.user.username,
+                "avatar": request._request._current_scheme_host + '/media/' + str(request.user.avatar)
+            }
+            return ApiResponse(data, code=200, msg='ok')
+        else:
+            raise exceptions.APIException('用户不存在!')
 
 
 class UserAuthView(APIView):
@@ -57,14 +84,14 @@ class UserInfoView(APIView):
             }
             return ApiResponse(data, code=200, msg='ok')
         else:
-            return ApiResponse(code=400, msg='用户不存在!')
+            raise exceptions.APIException('用户不存在!')
 
 
 class UserViewSet(mixins.CreateModelMixin,
                   mixins.RetrieveModelMixin,
                   mixins.UpdateModelMixin,
                   GenericViewSet):
-    # 用户管理(增改查)
+    # 用户注册、修改资料、详情页(增改查)
 
     queryset = UserProfile.objects.all()
     serializer_class = UserIntroSerializer
@@ -73,13 +100,15 @@ class UserViewSet(mixins.CreateModelMixin,
     def get_serializer_class(self):
         if self.action == 'create':
             return UserRegisterSerializer
+        elif self.action in ('update','partial_update'):
+            return UserUpdateSerializer
         return UserIntroSerializer
 
     def get_permissions(self):
-        if self.action == 'create':
-            return []
-        else:
+        if self.action in ('update','partial_update'):
             return [IsSelfAuthenticated()]
+        else:
+            return []
 
     def create(self, request, *args, **kwargs):
         serializer = self.get_serializer(data=request.data)
@@ -88,6 +117,19 @@ class UserViewSet(mixins.CreateModelMixin,
         headers = self.get_success_headers(serializer.data)
         return ApiResponse(serializer.data, code=200, msg='ok', status=status.HTTP_201_CREATED, headers=headers)
 
+    def update(self, request, *args, **kwargs):
+        partial = kwargs.pop('partial', False)
+        instance = self.get_object()
+        serializer = self.get_serializer(instance, data=request.data, partial=partial)
+        serializer.is_valid(raise_exception=True)
+        self.perform_update(serializer)
+
+        if getattr(instance, '_prefetched_objects_cache', None):
+            # If 'prefetch_related' has been applied to a queryset, we need to
+            # forcibly invalidate the prefetch cache on the instance.
+            instance._prefetched_objects_cache = {}
+
+        return ApiResponse(serializer.data, code=200, msg='ok')
 
 class ImageCaptchaView(APIView):
     def get(self, request):
