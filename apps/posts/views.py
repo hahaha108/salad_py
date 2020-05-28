@@ -4,7 +4,7 @@ from collections import OrderedDict
 # from .permission import IsSelfItemAuthenticated
 from rest_framework.permissions import IsAuthenticated
 from common.custom import ApiResponse
-
+from rest_framework import exceptions
 from .serializers import PostSerializer, PostListSerializer, PostPublishSerializer
 from .models import Post
 
@@ -61,6 +61,8 @@ class PostsViewSet(mixins.ListModelMixin, mixins.RetrieveModelMixin, mixins.Crea
         return ApiResponse(serializer.data, code=200, msg="ok")
 
     def create(self, request, *args, **kwargs):
+        if not request.user.verify:
+            raise exceptions.APIException("需要验证邮箱，激活后才能发布文章")
         serializer = self.get_serializer(data=request.data)
         serializer.is_valid(raise_exception=True)
         self.perform_create(serializer)

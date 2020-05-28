@@ -204,3 +204,16 @@ JWT_AUTH = {
 #     }
 #
 # }
+
+# 固定写法
+EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
+# smtp服务器地址
+EMAIL_HOST = 'smtp.qq.com'
+# 固定端口号
+EMAIL_PORT = 25
+#发送邮件的邮箱
+EMAIL_HOST_USER = '369943318@qq.com'
+#在邮箱中设置的客户端授权密码
+EMAIL_HOST_PASSWORD = ''
+#收件人看到的发件人，尖括号中的必须与上面的user一致
+EMAIL_FROM = 'Salad<369943318@qq.com>'

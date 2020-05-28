@@ -5,3 +5,4 @@ djangorestframework==3.11.0
 django-cors-headers==3.3.0
 lxml==4.5.1
 django-simple-captcha==0.5.12
+itsdangerous==1.1.0

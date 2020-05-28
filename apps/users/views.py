@@ -15,11 +15,70 @@ from .permission import IsSelfAuthenticated
 from .serializer import UserLoginSerializer, UserIntroSerializer, UserRegisterSerializer, UserUpdateSerializer
 from .models import UserProfile
 import base64
+from itsdangerous import TimedJSONWebSignatureSerializer, SignatureExpired
+from django.core.mail import send_mail
+from django.http import HttpResponse
 
 # Create your views here.
 
 jwt_payload_handler = api_settings.JWT_PAYLOAD_HANDLER
 jwt_encode_handler = api_settings.JWT_ENCODE_HANDLER
+
+class EmailVerifyView(APIView):
+    authentication_classes = (JSONWebTokenAuthentication,)
+    ser = TimedJSONWebSignatureSerializer(settings.SECRET_KEY, 1800)
+
+    def get_permissions(self):
+        """
+        Instantiates and returns the list of permissions that this view requires.
+        """
+        # 这时候self.request 类型为django的WSGIRequest
+        if self.request.method.lower() == 'post':
+            return [IsAuthenticated()]
+        return []
+
+    def get(self,request, *args, **kwargs):
+        # 验证回调
+        sign_token = request.query_params.get("sign_token")
+        if not sign_token:
+            raise exceptions.APIException("校验参数错误")
+        try:
+            info = self.ser.loads(sign_token)
+            uid = info.get('uid')
+            email = info.get('email')
+            user = UserProfile.objects.get(id=uid)
+            if user.email == email and user.verify == False:
+                user.verify = True
+                user.save()
+                return HttpResponse("激活成功")
+        except SignatureExpired:
+            pass
+        return HttpResponse("激活链接已过期！")
+
+    def post(self, request, *args, **kwargs):
+        # 邮件验证
+        email = request.data.get("email",None)
+        if not email:
+            raise exceptions.APIException("email参数必传")
+        if request.user.verify:
+            raise exceptions.APIException("用户已激活")
+        info = {
+            'uid': request.user.id,
+            'email': email
+        }
+        sign_token = self.ser.dumps(info).decode()
+        verify_url = request._request._current_scheme_host + request.path_info + f'?sign_token={sign_token}'
+        html_message = '<h1>{}，欢迎注册</h1>请点击下面链接激活您的用户<br><a href="{}" rel="external nofollow" >{}</a>'.format(
+            request.user.username, verify_url, verify_url)
+        try:
+            send_mail('Salad邮箱验证','',settings.EMAIL_FROM,[email,],html_message=html_message)
+        except:
+            raise exceptions.APIException("邮件发送失败，请确认邮箱地址是否正确")
+        request.user.email = email
+        request.user.save()
+        return ApiResponse(info,code=200, msg='ok')
+
+
 
 class UserAvatarManageView(APIView):
     authentication_classes = (JSONWebTokenAuthentication,)
@@ -80,7 +139,8 @@ class UserInfoView(APIView):
                 "username": request.user.username,
                 "nickname": request.user.nickname,
                 "avatar": request._request._current_scheme_host + '/media/' + str(request.user.avatar),
-                "email": request.user.email
+                "email": request.user.email,
+                "verify": request.user.verify
             }
             return ApiResponse(data, code=200, msg='ok')
         else:

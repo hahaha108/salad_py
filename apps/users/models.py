@@ -18,6 +18,7 @@ class UserProfile(AbstractUser):
     email = models.EmailField("邮箱",max_length=100,null=True,blank=True)
     avatar = models.ImageField(upload_to=change_file_path, default="image/default.png",
                               max_length=100, null=True, blank=True)
+    verify = models.BooleanField("是否激活",default=False)
 
     class Meta:
         verbose_name = "用户信息"
