@@ -46,3 +46,23 @@ class Post(models.Model):
     def increase_views(self):
         self.views_count += 1
         self.save(update_fields=['views_count'])
+
+
+class Comment(models.Model):
+    post = models.ForeignKey(Post,null=True,blank=True,on_delete=models.SET_NULL)
+    user = models.ForeignKey(User, null=True,blank=True, on_delete=models.SET_NULL)
+    parent_comment = models.ForeignKey('self',null=True,blank=True,default=None, on_delete=models.CASCADE)
+    comment_content = models.CharField(max_length=1024, verbose_name='评论内容')
+    shared_at = models.DateTimeField(auto_now_add=True)
+    likes_count = models.PositiveIntegerField(default=0)
+
+    def save(self,*args,**kwargs):
+        self.post.comment_count += 1
+        self.post.save(update_fields=['comment_count'])
+        super(Comment, self).save(*args,**kwargs)
+
+    class Meta:
+        ordering = ['-shared_at']
+
+    def __str__(self):
+        return self.comment_content

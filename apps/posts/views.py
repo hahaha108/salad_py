@@ -3,10 +3,10 @@ from rest_framework.pagination import PageNumberPagination
 from collections import OrderedDict
 # from .permission import IsSelfItemAuthenticated
 from rest_framework.permissions import IsAuthenticated
-from common.custom import ApiResponse
+from common.custom import ApiResponse, get_object_or_None
 from rest_framework import exceptions
-from .serializers import PostSerializer, PostListSerializer, PostPublishSerializer
-from .models import Post
+from .serializers import PostSerializer, PostListSerializer, PostPublishSerializer, CommentPublishSerializer, CommentListSerializer
+from .models import Post, Comment
 
 
 # Create your views here.
@@ -68,3 +68,27 @@ class PostsViewSet(mixins.ListModelMixin, mixins.RetrieveModelMixin, mixins.Crea
         self.perform_create(serializer)
         headers = self.get_success_headers(serializer.data)
         return ApiResponse(serializer.data, code=200, msg="ok", status=status.HTTP_201_CREATED, headers=headers)
+
+class CommentViewSet(mixins.ListModelMixin, mixins.CreateModelMixin, viewsets.GenericViewSet):
+    serializer_class = CommentPublishSerializer
+    pagination_class = PostsPagination
+
+    def get_queryset(self):
+        post_id = self.request.query_params.get('post_id')
+        user_id = self.request.query_params.get('user_id')
+        if post_id:
+            return Comment.objects.filter(post=post_id)
+        elif user_id:
+            return Comment.objects.filter(user=user_id)
+        return Comment.objects.none()
+
+    def get_serializer_class(self):
+        if self.action == "list":
+            return CommentListSerializer
+        return CommentPublishSerializer
+
+    def get_permissions(self):
+        if self.action == 'create':
+            return [IsAuthenticated()]
+        else:
+            return []

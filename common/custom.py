@@ -4,6 +4,7 @@ from django.http import Http404
 from django.core.exceptions import PermissionDenied
 from rest_framework import exceptions
 from rest_framework.views import set_rollback
+from django.shortcuts import _get_queryset
 
 class ApiResponse(Response):
     """
@@ -80,3 +81,16 @@ def exception_handler(exc, context):
         return ApiResponse(data=exc.detail, code=0, msg='ApiError', status=status, headers=headers)
 
     return None
+
+def get_object_or_None(klass, *args, **kwargs):
+    queryset = _get_queryset(klass)
+    if not hasattr(queryset, 'get'):
+        klass__name = klass.__name__ if isinstance(klass, type) else klass.__class__.__name__
+        raise ValueError(
+            "First argument to get_object_or_None() must be a Model, Manager, "
+            "or QuerySet, not '%s'." % klass__name
+        )
+    try:
+        return queryset.get(*args, **kwargs)
+    except queryset.model.DoesNotExist:
+        return queryset.none()
