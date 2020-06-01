@@ -81,8 +81,12 @@ class CommentListSerializer(serializers.ModelSerializer):
         Create nested fields for forward and reverse relationships.
         """
         # 重写build_nested_field方法，处理ModelSerializer自关联逻辑
-        field_class = CommentListSerializer
-        CommentListSerializer.Meta.depth -= 1
+        class NestedSerializer(CommentListSerializer):
+            class Meta:
+                model = relation_info.related_model
+                depth = nested_depth - 1
+                fields = ["user","parent_comment","comment_content","shared_at","likes_count"]
+        field_class = NestedSerializer
         field_kwargs = get_nested_relation_kwargs(relation_info)
         return field_class, field_kwargs
 
