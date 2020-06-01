@@ -1,7 +1,9 @@
 from rest_framework import serializers
 from .models import Post, Comment
-from apps.users.serializer import UserIntroSerializer
+from apps.users.serializer import UserIntroSerializer, CommentUserSerializer
 from django.shortcuts import get_object_or_404
+from rest_framework import exceptions
+from rest_framework.utils.field_mapping import get_nested_relation_kwargs
 
 class PostSerializer(serializers.ModelSerializer):
     '''
@@ -48,7 +50,7 @@ class CommentPublishSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Comment
-        fields = ['post_id', 'user', 'parent_comment', 'comment_content','shared_at']
+        fields = ['post_id', 'user', 'parent_comment_id', 'comment_content','shared_at']
 
     def create(self, validated_data):
         if "post_id" in validated_data:
@@ -59,12 +61,32 @@ class CommentPublishSerializer(serializers.ModelSerializer):
             del validated_data["parent_comment_id"]
         return super(CommentPublishSerializer, self).create(validated_data)
 
+    def validate_parent_comment_id(self,parent_comment_id):
+        parent_comment = get_object_or_404(Comment, id=parent_comment_id)
+        if parent_comment.post.id != int(self.initial_data["post_id"]):
+            raise exceptions.APIException("错误数据！")
+        return parent_comment_id
+
+
 
 class CommentListSerializer(serializers.ModelSerializer):
     '''
     评论列表
     '''
+
+    user = CommentUserSerializer()
+
+    def build_nested_field(self, field_name, relation_info, nested_depth):
+        """
+        Create nested fields for forward and reverse relationships.
+        """
+        # 重写build_nested_field方法，处理ModelSerializer自关联逻辑
+        field_class = CommentListSerializer
+        CommentListSerializer.Meta.depth -= 1
+        field_kwargs = get_nested_relation_kwargs(relation_info)
+        return field_class, field_kwargs
+
     class Meta:
         model = Comment
-        fields = "__all__"
-        depth = 3
+        fields = ["user","parent_comment","comment_content","shared_at","likes_count"]
+        depth = 5 # 指定评论嵌套最大深度为5

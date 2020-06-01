@@ -85,3 +85,8 @@ class UserRegisterSerializer(serializers.ModelSerializer):
         del attrs["captcha_code"]
         del attrs["captcha_id"]
         return attrs
+
+class CommentUserSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = UserProfile
+        fields = ['id', 'nickname', 'avatar']
